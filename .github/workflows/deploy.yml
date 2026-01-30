@@ -1,0 +1,86 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["Backend CI/CD", "Frontend CI/CD"]
+    types:
+      - completed
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'staging' || (github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.STAGING_SERVER_HOST }}
+        username: ${{ secrets.STAGING_SERVER_USER }}
+        key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
+        script: |
+          cd /opt/ceramic-mall
+          docker-compose pull
+          docker-compose up -d
+          docker system prune -f
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production'
+
+    environment:
+      name: production
+      url: https://ceramic-mall.com
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to production server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.PRODUCTION_SERVER_HOST }}
+        username: ${{ secrets.PRODUCTION_SERVER_USER }}
+        key: ${{ secrets.PRODUCTION_SERVER_SSH_KEY }}
+        script: |
+          cd /opt/ceramic-mall
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          docker system prune -f
+
+    - name: Notify deployment success
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: 'Production deployment completed successfully!'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+    - name: Notify deployment failure
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: 'Deployment failed! Please check the logs.'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    build: ./mysql
+    container_name: ceramic-mall-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: ceramic_mall
+      MYSQL_USER: ceramic
+      MYSQL_PASSWORD: ceramic123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - ceramic-mall-network
+    restart: unless-stopped
+
+  # 后端服务
+  backend:
+    build: ./backend
+    container_name: ceramic-mall-backend
+    depends_on:
+      - mysql
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ceramic_mall?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: ceramic
+      SPRING_DATASOURCE_PASSWORD: ceramic123
+      JWT_SECRET: ceramic-mall-jwt-secret-key-2024-docker
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - "8080:8080"
+    networks:
+      - ceramic-mall-network
+    restart: unless-stopped
+
+  # 前端服务
+  frontend:
+    build: ./frontend
+    container_name: ceramic-mall-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    networks:
+      - ceramic-mall-network
+    restart: unless-stopped
+
+  # Nginx反向代理（可选，用于生产环境）
+  nginx:
+    image: nginx:alpine
+    container_name: ceramic-mall-nginx
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    networks:
+      - ceramic-mall-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  ceramic-mall-network:
+    driver: bridge

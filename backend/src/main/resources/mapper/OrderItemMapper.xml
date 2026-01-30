@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ceramic.mall.mapper.OrderItemMapper">
+
+    <!-- 根据订单ID查询订单详情列表，包含商品信息 -->
+    <select id="selectByOrderId" resultMap="OrderItemWithProductResult">
+        SELECT
+            oi.id,
+            oi.order_id,
+            oi.product_id,
+            oi.product_name,
+            oi.product_price,
+            oi.quantity,
+            oi.total_price,
+            oi.create_time,
+            p.id as p_id,
+            p.name as p_name,
+            p.images as p_images
+        FROM order_items oi
+        LEFT JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = #{orderId}
+          AND oi.deleted = 0
+          AND p.deleted = 0
+        ORDER BY oi.create_time ASC
+    </select>
+
+    <!-- 批量插入订单详情 -->
+    <insert id="batchInsert">
+        INSERT INTO order_items (
+            order_id,
+            product_id,
+            product_name,
+            product_price,
+            quantity,
+            total_price,
+            create_time
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.orderId},
+             #{item.productId},
+             #{item.productName},
+             #{item.productPrice},
+             #{item.quantity},
+             #{item.totalPrice},
+             #{item.createTime})
+        </foreach>
+    </insert>
+
+    <!-- 结果映射 -->
+    <resultMap id="OrderItemWithProductResult" type="com.ceramic.mall.entity.OrderItem">
+        <id column="id" property="id"/>
+        <result column="order_id" property="orderId"/>
+        <result column="product_id" property="productId"/>
+        <result column="product_name" property="productName"/>
+        <result column="product_price" property="productPrice"/>
+        <result column="quantity" property="quantity"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="create_time" property="createTime"/>
+        <association property="product" javaType="com.ceramic.mall.entity.Product">
+            <id column="p_id" property="id"/>
+            <result column="p_name" property="name"/>
+            <result column="p_images" property="images"/>
+        </association>
+    </resultMap>
+
+</mapper>

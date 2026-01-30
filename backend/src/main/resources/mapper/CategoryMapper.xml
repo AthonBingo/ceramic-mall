@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ceramic.mall.mapper.CategoryMapper">
+
+    <!-- 查询所有顶级分类 -->
+    <select id="selectTopLevelCategories" resultType="com.ceramic.mall.entity.Category">
+        SELECT * FROM categories
+        WHERE parent_id IS NULL OR parent_id = 0
+          AND deleted = 0
+        ORDER BY sort_order ASC, create_time DESC
+    </select>
+
+    <!-- 查询指定分类的子分类 -->
+    <select id="selectByParentId" resultType="com.ceramic.mall.entity.Category">
+        SELECT * FROM categories
+        WHERE parent_id = #{parentId}
+          AND deleted = 0
+        ORDER BY sort_order ASC, create_time DESC
+    </select>
+
+</mapper>

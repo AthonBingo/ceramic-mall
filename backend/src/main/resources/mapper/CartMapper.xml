@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ceramic.mall.mapper.CartMapper">
+
+    <!-- 根据用户ID查询购物车列表，包含商品信息 -->
+    <select id="selectCartListByUserId" resultMap="CartWithProductResult">
+        SELECT
+            c.id,
+            c.user_id,
+            c.product_id,
+            c.quantity,
+            c.create_time,
+            p.id as p_id,
+            p.name as p_name,
+            p.price as p_price,
+            p.images as p_images,
+            p.stock as p_stock,
+            p.status as p_status
+        FROM carts c
+        LEFT JOIN products p ON c.product_id = p.id
+        WHERE c.user_id = #{userId}
+          AND c.deleted = 0
+          AND p.deleted = 0
+        ORDER BY c.create_time DESC
+    </select>
+
+    <!-- 根据用户ID和商品ID查询购物车记录 -->
+    <select id="selectByUserIdAndProductId" resultType="com.ceramic.mall.entity.Cart">
+        SELECT * FROM carts
+        WHERE user_id = #{userId}
+          AND product_id = #{productId}
+          AND deleted = 0
+    </select>
+
+    <!-- 清空用户购物车 -->
+    <update id="clearByUserId">
+        UPDATE carts
+        SET deleted = 1
+        WHERE user_id = #{userId}
+          AND deleted = 0
+    </update>
+
+    <!-- 结果映射 -->
+    <resultMap id="CartWithProductResult" type="com.ceramic.mall.entity.Cart">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="product_id" property="productId"/>
+        <result column="quantity" property="quantity"/>
+        <result column="create_time" property="createTime"/>
+        <association property="product" javaType="com.ceramic.mall.entity.Product">
+            <id column="p_id" property="id"/>
+            <result column="p_name" property="name"/>
+            <result column="p_price" property="price"/>
+            <result column="p_images" property="images"/>
+            <result column="p_stock" property="stock"/>
+            <result column="p_status" property="status"/>
+        </association>
+    </resultMap>
+
+</mapper>

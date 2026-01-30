@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ceramic.mall.mapper.ProductMapper">
+
+    <!-- 分页查询商品列表 -->
+    <select id="selectProductPage" resultType="com.ceramic.mall.entity.Product">
+        SELECT
+            p.id,
+            p.name,
+            p.description,
+            p.price,
+            p.stock,
+            p.category_id,
+            p.images,
+            p.sales,
+            p.status,
+            p.create_time
+        FROM products p
+        <where>
+            p.deleted = 0
+            <if test="categoryId != null">
+                AND p.category_id = #{categoryId}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (p.name LIKE CONCAT('%', #{keyword}, '%')
+                     OR p.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY p.sales DESC, p.create_time DESC
+    </select>
+
+    <!-- 查询热销商品 -->
+    <select id="selectHotProducts" resultType="com.ceramic.mall.entity.Product">
+        SELECT * FROM products
+        WHERE deleted = 0
+          AND status = 1
+          AND stock > 0
+        ORDER BY sales DESC, create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 增加商品销量 -->
+    <update id="increaseSales">
+        UPDATE products
+        SET sales = sales + #{quantity}
+        WHERE id = #{productId}
+          AND deleted = 0
+    </update>
+
+    <!-- 减少商品库存 -->
+    <update id="decreaseStock">
+        UPDATE products
+        SET stock = stock - #{quantity}
+        WHERE id = #{productId}
+          AND stock >= #{quantity}
+          AND deleted = 0
+    </update>
+
+</mapper>
